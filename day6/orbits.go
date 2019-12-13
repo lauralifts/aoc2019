@@ -14,22 +14,66 @@ type node struct {
 
 
 func main() {
-  orbits := getOrbits()
+  orbits, dict := getOrbits()
+  fmt.Printf("Tree is rooted at %s\n", orbits.name)
+
+  santa := dict["SAN"]
+  you := dict["YOU"]
+
+  //fmt.Printf("Santas %v, path to root %v\n", santa, santa.pathToRoot())
+  //fmt.Printf("You %v, path to root %v\n", you, you.pathToRoot())
+
+  sp := santa.pathToRoot()
+  yp := you.pathToRoot()
+
+  i := 0
+  for ;i < len(sp) && i < len(yp); i++{
+    if sp[i].name != yp[i].name {
+      break
+    }
+  }
+
+  i--
+  fmt.Printf("First common ancestor is %s at %d\n", sp[i].name, i)
+
+  // subtract 1 for the common ancestor, and 2 because we're transferring
+  // between parents of YOU and SAN
+  result := len(sp) + len(yp) - 2*i -3
+  fmt.Printf("Transfer orbits: %d\n", result)
+}
+
+func part1() {
+  orbits, _ := getOrbits()
   fmt.Printf("Tree is rooted at %s\n", orbits.name)
 
   result := orbits.countChildRelationships(0)
   fmt.Printf("Total orbits %d\n", result)
 }
 
+
 func newNode(name string) node {
   n := node {
     name: name,
   }
-  //fmt.Printf("Create node %s\n", name)
-
-
 
   return n
+}
+
+func (n *node) pathToRoot() []*node {
+  cur := n
+  path := make([]*node, 0)
+  path = append(path, n)
+  for cur.parent != nil {
+    path = append(path, cur.parent)
+    cur = cur.parent
+  }
+
+  //reverse
+  for i := len(path)/2-1; i >= 0; i-- {
+	  opp := len(path)-1-i
+	  path[i], path[opp] = path[opp], path[i]
+  }
+  return path
 }
 
 func (n *node) addChild(c *node){
@@ -62,7 +106,7 @@ func (n *node) getRoot() *node {
   return cur
 }
 
-func getOrbits() *node {
+func getOrbits() (*node,map[string]*node){
   file, err := os.Open("./input.txt")
   if err != nil {
     log.Fatal(err)
@@ -105,5 +149,5 @@ func getOrbits() *node {
   }
 
   result := lastnode.getRoot()
-  return result
+  return result, dict
 }
