@@ -38,7 +38,7 @@ func main() {
 
   // subtract 1 for the common ancestor, and 2 because we're transferring
   // between parents of YOU and SAN
-  result := len(sp) + len(yp) - 2*i -3
+  result := len(sp) + len(yp) - 2*i -4
   fmt.Printf("Transfer orbits: %d\n", result)
 }
 
