@@ -12,6 +12,10 @@ const (
   MUL = 2
   INPUT = 3
   OUTPUT = 4
+  JUMPIFTRUE = 5
+  JUMPIFFALSE = 6
+  LESSTHAN = 7
+  EQUALS = 8
   HALT = 99
 
   POS_MODE = 0
@@ -19,6 +23,8 @@ const (
 )
 
 type op func(int, int) int
+type lop func(int) bool
+
 
 func main() {
   text := getText()
@@ -57,6 +63,26 @@ func runProgram(program []*int) error {
       if err != nil {
           return err
       }
+    case JUMPIFTRUE:
+      ptr, err = doJumpTrue(program, ptr)
+      if err != nil {
+          return err
+      }
+    case JUMPIFFALSE:
+      ptr, err = doJumpFalse(program, ptr)
+      if err != nil {
+          return err
+      }
+    case LESSTHAN:
+      ptr, err = doLessThan(program, ptr)
+      if err != nil {
+          return err
+      }
+    case EQUALS:
+      ptr, err = doEquals(program, ptr)
+      if err != nil {
+          return err
+      }
     default:
       log.Fatalf("Unrecognised opcode: %d at position %d\n", *program[ptr], ptr)
     }
@@ -86,7 +112,7 @@ func doInput(program []*int, pos int) (int, error) {
 
 // Returns new position
 func doOutput(program []*int, pos int) (int, error) {
-  mode1, _ := paramModes(*program[pos])
+  mode1, _, _ := paramModes(*program[pos])
   op1, err := param(program, pos+1, mode1)
   if err != nil {
     return 0, err
@@ -95,6 +121,44 @@ func doOutput(program []*int, pos int) (int, error) {
   fmt.Printf("\n***Output: %d***\n", op1)
 
   return pos + 2, nil
+}
+
+// Returns new position
+func doLessThan(program []*int, pos int) (int, error) {
+  return doFunc(program, pos, lessthan)
+}
+
+// Returns new position
+func doEquals(program []*int, pos int) (int, error) {
+  return doFunc(program, pos, equals)
+}
+
+// Returns new position
+func doJumpTrue(program []*int, pos int) (int, error) {
+  return doJumpFunc(program, pos, truefn)
+}
+
+// Returns new position
+func doJumpFalse(program []*int, pos int) (int, error) {
+  return doJumpFunc(program, pos, falsefn)
+}
+
+func doJumpFunc(program []*int, pos int, fn lop) (int, error){
+  mode1, mode2, _ := paramModes(*program[pos])
+  op1, err := param(program, pos+1, mode1)
+  if err != nil {
+    return 0, err
+  }
+  op2, err := param(program, pos+2, mode2)
+  if err != nil {
+    return 0, err
+  }
+
+  if fn(op1) {
+    return op2, nil
+  }
+
+  return pos + 3, nil
 }
 
 // Returns new position
@@ -108,7 +172,7 @@ func doADD(program []*int, pos int) (int, error) {
 }
 
 func doFunc(program []*int, pos int, fn op) (int, error){
-  mode1, mode2 := paramModes(*program[pos])
+  mode1, mode2, _ := paramModes(*program[pos])
   op1, err := param(program, pos+1, mode1)
   if err != nil {
     return 0, err
@@ -149,6 +213,28 @@ func mul(x int, y int) int {
     return x * y
 }
 
+func truefn(x int) bool {
+    return x != 0
+}
+
+func falsefn(x int) bool {
+    return x == 0
+}
+
+func lessthan(x int, y int) int {
+    if x < y {
+      return 1
+    }
+    return 0
+}
+
+func equals(x int, y int) int {
+    if x == y {
+      return 1
+    }
+    return 0
+}
+
 func getText() string {
   file, err := os.Open("./input.txt")
   if err != nil {
@@ -186,10 +272,11 @@ func opcode(instr int) int {
   return instr % 100
 }
 
-func paramModes(instr int) (int, int) {
-  mode1, mode2 := POS_MODE, POS_MODE
+func paramModes(instr int) (int, int, int) {
+  mode1, mode2, mode3 := POS_MODE, POS_MODE, POS_MODE
   if instr >= 10000 {
     instr -= 10000
+    mode3 = IMM_MODE
   }
   if instr >= 1000 {
     mode2 = IMM_MODE
@@ -198,7 +285,7 @@ func paramModes(instr int) (int, int) {
   if instr >= 100 {
     mode1 = IMM_MODE
   }
-  return mode1, mode2
+  return mode1, mode2, mode3
 }
 
 
